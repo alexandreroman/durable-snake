@@ -81,8 +81,9 @@ Controls during play:
 | `BTN_BACK`                 | Quit the current run      |
 | `BTN_CONFIRM` / `BTN_BACK` | Confirm / cancel on menus |
 
-Wrap-around is enabled at every edge. When you bite
-yourself with lives remaining, a **Bitten!** screen
+A 1-pixel border surrounds the play field — touching
+it ends the life. When you bite yourself or hit the
+wall with lives remaining, a **Bitten!** screen
 offers a retry; otherwise the run ends and your
 score is recorded.
 
@@ -103,12 +104,12 @@ graph TD
     engine --> save[(durable_snake_score.json)]
 ```
 
-The play grid is 32 columns × 13 rows of 4×4-pixel
-cells, sitting below the chrome header. The LED
-matrix's top row lights one cell per remaining
-life; the seven rows below fill in raster order
-with one cell per apple, looping with a brightness
-boost every 56 apples.
+The play grid is 31 columns × 13 rows of 4×4-pixel
+cells, framed by a 1-pixel border just below the
+chrome header. The LED matrix's top row lights one
+cell per remaining life; the seven rows below fill
+in raster order with one cell per apple, looping
+with a brightness boost every 56 apples.
 
 ## Contributing
 
