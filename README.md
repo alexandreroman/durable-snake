@@ -75,11 +75,11 @@ Once deployed, launch the app from the badge's
 
 Controls during play:
 
-| Input              | Action                            |
-| ------------------ | --------------------------------- |
-| Joystick (4 ways)  | Steer the snake                   |
-| `BTN_BACK`         | Quit the current run              |
-| `BTN_CONFIRM` / `BTN_BACK` | Confirm / cancel on menus  |
+| Input                      | Action                    |
+| -------------------------- | ------------------------- |
+| Joystick (4 ways)          | Steer the snake           |
+| `BTN_BACK`                 | Quit the current run      |
+| `BTN_CONFIRM` / `BTN_BACK` | Confirm / cancel on menus |
 
 Wrap-around is enabled at every edge. When you bite
 yourself with lives remaining, a **Bitten!** screen
