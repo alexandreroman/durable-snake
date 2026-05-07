@@ -8,6 +8,8 @@ execution mantra.
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
+https://github.com/user-attachments/assets/f2cd3311-fb24-43c2-9589-72fddf574083
+
 ## Features
 
 - **Three lives per run** — a snake bite is not the
