@@ -93,6 +93,7 @@ def new_run():
         "next_dir": (1, 0),
         "food": random_free_cell(snake_set),
         "food_count": 0,
+        "speed_count": 0,
         "step_ms": START_STEP_MS,
         "last_step": time.ticks_ms(),
         "last_frame": 0,
@@ -111,6 +112,8 @@ def restart_after_continue(game):
     game["dir"] = (1, 0)
     game["next_dir"] = (1, 0)
     game["food"] = random_free_cell(snake_set)
+    game["speed_count"] = 0
+    game["step_ms"] = START_STEP_MS
     game["last_step"] = time.ticks_ms()
     game["last_frame"] = 0
     game["burst"] = None
@@ -164,7 +167,8 @@ def step(game, now):
     if eating:
         old_food = game["food"]
         game["food_count"] += 1
-        game["step_ms"] = compute_interval(game["food_count"])
+        game["speed_count"] += 1
+        game["step_ms"] = compute_interval(game["speed_count"])
         game["burst"] = (old_food[0], old_food[1], EAT_BURST_FRAMES)
         if game["food_count"] % MILESTONE_INTERVAL == 0:
             game["milestone_until"] = ticks_add(now, MILESTONE_MS)
