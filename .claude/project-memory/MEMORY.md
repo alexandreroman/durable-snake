@@ -13,3 +13,4 @@
 - [Folder-app game state invariants](references/game_state_invariants.md) — game-state dicts must include `last_frame: 0` before calling `DualScreenSession.frame_due`
 - [Badge on-device documentation](references/badge_docs.md) — pull `/docs/API_REFERENCE.md` and `/docs/MicroPythonDeveloperGuide.md` from the badge instead of guessing APIs
 - [Badge firmware updates URL](references/badge_updates.md) — https://badge.temporal.io is the official site for firmware updates and badge info
+- [Hard reset required after each app deployment](references/deploy_hard_reset.md) — after copying updated app files, hard-reset the badge before re-launching, otherwise cached modules run
