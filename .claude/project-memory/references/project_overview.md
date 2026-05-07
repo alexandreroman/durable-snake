@@ -9,9 +9,10 @@ type: project
 Durable Snake is a MicroPython app for the
 Temporal "Replay Badge" (ESP32-S3). The name is an
 intentional play on Temporal's *durable execution*
-product positioning — the snake survives bites
-because each run is "durable" (3 retries continue
-at the same speed and same score).
+product positioning — each retry restarts the snake
+fresh (body, speed) but the score is preserved
+across the run's 3 lives, mirroring how a Temporal
+workflow keeps its durable state across replays.
 
 **Why:** The badge work doubles as developer
 advocacy / demo material for Temporal. The theme
