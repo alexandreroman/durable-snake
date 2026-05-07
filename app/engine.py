@@ -56,7 +56,7 @@ TITLE_SNAKE_LEN = 5
 GAMEOVER_TICK_MS = 240
 
 LIVES_START = 3
-LIVES_ROW_BRIGHT = 220
+SCORE_BRIGHTNESS = 120
 
 BONUS_PROBABILITY_INV = 8
 BONUS_MIN_FOOD = 5
@@ -86,7 +86,28 @@ TARDIGRADE_FRAME_B = (
     0b01000010,
 )
 
+# 3x5 pixel font for digits 0-9. Each glyph row uses bit 2 = leftmost pixel, bit 0 = rightmost.
+DIGITS_3X5 = (
+    (0b111, 0b101, 0b101, 0b101, 0b111),
+    (0b010, 0b010, 0b010, 0b010, 0b111),
+    (0b111, 0b001, 0b111, 0b100, 0b111),
+    (0b111, 0b001, 0b011, 0b001, 0b111),
+    (0b101, 0b101, 0b111, 0b001, 0b001),
+    (0b111, 0b100, 0b111, 0b001, 0b111),
+    (0b111, 0b100, 0b111, 0b101, 0b111),
+    (0b111, 0b001, 0b010, 0b100, 0b100),
+    (0b111, 0b101, 0b111, 0b101, 0b111),
+    (0b111, 0b101, 0b111, 0b001, 0b111),
+)
+
 SCORE_PATH = "/durable_snake_score.json"
+
+
+def reverse_byte(b):
+    r = 0
+    for i in range(8):
+        r = (r << 1) | ((b >> i) & 1)
+    return r
 
 
 def compute_interval(food_count):
@@ -396,25 +417,24 @@ def draw_play(game, now=None):
     oled_show()
 
 
-def lives_row_mask(lives):
-    mask = 0
-    for i in range(lives):
-        mask |= 0x80 >> i
-    return mask
-
-
 def render_score_frame(game):
     rows = [0] * 8
-    rows[0] = lives_row_mask(game["lives"])
-    food_count = game["food_count"]
-    if food_count > 0:
-        cycle = (food_count - 1) // 56
-        lit = ((food_count - 1) % 56) + 1
-        for i in range(lit):
-            r = 1 + i // 8
-            c = i % 8
-            rows[r] |= 0x80 >> c
-    return rows
+    score = game["food_count"]
+    hundreds = score // 100
+    if hundreds > 8:
+        hundreds = 8
+    if score < 10:
+        glyph = DIGITS_3X5[score]
+        for i in range(5):
+            rows[2 + i] = glyph[i] << 2
+    else:
+        tens_glyph = DIGITS_3X5[(score // 10) % 10]
+        units_glyph = DIGITS_3X5[score % 10]
+        for i in range(5):
+            rows[2 + i] = (tens_glyph[i] << 4) | units_glyph[i]
+    if hundreds > 0:
+        rows[0] = (0xFF << (8 - hundreds)) & 0xFF
+    return [reverse_byte(b) for b in rows[::-1]]
 
 
 def draw_score_leds(game, now):
@@ -425,15 +445,7 @@ def draw_score_leds(game, now):
             led_clear()
         return
     rows = render_score_frame(game)
-    food_count = game["food_count"]
-    if food_count <= 0:
-        base = LIVES_ROW_BRIGHT
-    else:
-        cycle = (food_count - 1) // 56
-        base = 35 + cycle * 60
-        if base > 200:
-            base = 200
-    led_set_frame(rows, base)
+    led_set_frame(rows, SCORE_BRIGHTNESS)
 
 
 def death_animation(game, session):
@@ -481,7 +493,6 @@ def death_animation(game, session):
 
 def play_loop(game, session):
     last_food = -1
-    last_lives = -1
     led_redraw_at = 0
     draw_play(game)
     draw_score_leds(game, session.now())
@@ -497,10 +508,9 @@ def play_loop(game, session):
 
         update_invert(game, now)
 
-        if game["food_count"] != last_food or game["lives"] != last_lives:
+        if game["food_count"] != last_food:
             draw_score_leds(game, now)
             last_food = game["food_count"]
-            last_lives = game["lives"]
             led_redraw_at = now
         elif is_milestone(game, now):
             if time.ticks_diff(now, led_redraw_at) >= MILESTONE_STROBE_MS:
