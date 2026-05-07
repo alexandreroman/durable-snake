@@ -86,10 +86,7 @@ TARDIGRADE_FRAME_B = (
     0b01000010,
 )
 
-# 3x5 pixel font for digits 0-9. Authored upright with bit 2 leftmost so the
-# glyph shape is readable in source; render_score_frame flips both axes at the
-# end because the score is read with the badge held inverted (unlike the
-# tardigrade and game-over bitmaps, which are passed through unchanged).
+# 3x5 pixel font for digits 0-9, bit 2 = leftmost pixel.
 DIGITS_3X5 = (
     (0b111, 0b101, 0b101, 0b101, 0b111),
     (0b010, 0b010, 0b010, 0b010, 0b111),
@@ -104,13 +101,6 @@ DIGITS_3X5 = (
 )
 
 SCORE_PATH = "/durable_snake_score.json"
-
-
-def reverse_byte(b):
-    r = 0
-    for i in range(8):
-        r = (r << 1) | ((b >> i) & 1)
-    return r
 
 
 def compute_interval(food_count):
@@ -437,7 +427,7 @@ def render_score_frame(game):
             rows[2 + i] = (tens_glyph[i] << 4) | units_glyph[i]
     if hundreds > 0:
         rows[0] = (0xFF << (8 - hundreds)) & 0xFF
-    return [reverse_byte(b) for b in rows[::-1]]
+    return rows
 
 
 def draw_score_leds(game, now):
