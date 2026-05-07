@@ -14,3 +14,5 @@
 - [Badge on-device documentation](references/badge_docs.md) — pull `/docs/API_REFERENCE.md` and `/docs/MicroPythonDeveloperGuide.md` from the badge instead of guessing APIs
 - [Badge firmware updates URL](references/badge_updates.md) — https://badge.temporal.io is the official site for firmware updates and badge info
 - [Hard reset required after each app deployment](references/deploy_hard_reset.md) — after copying updated app files, hard-reset the badge before re-launching, otherwise cached modules run
+- [mpremote ls trailing-slash quirk](references/mpremote_ls_quirk.md) — `mpremote ... resume ls :path/` returns `Invalid argument`; drop the trailing slash
+- [Badge serial port enumeration](references/badge_serial_port.md) — Replay Badge shows up as `/dev/cu.usbmodem2101` (VID:PID `303a:1001`); always re-check via `mpremote devs`

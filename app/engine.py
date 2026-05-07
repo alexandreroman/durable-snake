@@ -58,6 +58,34 @@ GAMEOVER_TICK_MS = 240
 LIVES_START = 3
 LIVES_ROW_BRIGHT = 220
 
+BONUS_PROBABILITY_INV = 8
+BONUS_MIN_FOOD = 5
+BONUS_LIFETIME_MS = 6000
+BONUS_FLASH_MS = 100
+WORKFLOW_ID_HEX_CHARS = 6
+
+TARDIGRADE_FRAME_A = (
+    0b00111100,
+    0b01111110,
+    0b11111111,
+    0b11111111,
+    0b11111111,
+    0b01111110,
+    0b10100101,
+    0b10000001,
+)
+
+TARDIGRADE_FRAME_B = (
+    0b00111100,
+    0b01111110,
+    0b11111111,
+    0b11111111,
+    0b11111111,
+    0b01111110,
+    0b01011010,
+    0b01000010,
+)
+
 SCORE_PATH = "/durable_snake_score.json"
 
 
@@ -91,14 +119,38 @@ def fresh_snake():
     return snake, set(snake)
 
 
+def gen_workflow_id():
+    hex_chars = "0123456789ABCDEF"
+    out = "wf-"
+    for _ in range(WORKFLOW_ID_HEX_CHARS):
+        out += hex_chars[random.randint(0, 15)]
+    return out
+
+
+def spawn_food(game, snake_set, now):
+    cell = random_free_cell(snake_set)
+    # Bonus is gated on having played a bit AND missing at least one life,
+    # so a player who never died never sees a tardigrade (no life to grant).
+    can_bonus = (
+        game["food_count"] >= BONUS_MIN_FOOD
+        and game["lives"] < LIVES_START
+        and random.randint(1, BONUS_PROBABILITY_INV) == 1
+    )
+    game["food"] = cell
+    game["food_is_bonus"] = can_bonus
+    game["food_expires_at"] = ticks_add(now, BONUS_LIFETIME_MS) if can_bonus else None
+
+
 def new_run():
     snake, snake_set = fresh_snake()
-    return {
+    game = {
         "snake": snake,
         "snake_set": snake_set,
         "dir": (1, 0),
         "next_dir": (1, 0),
-        "food": random_free_cell(snake_set),
+        "food": None,
+        "food_is_bonus": False,
+        "food_expires_at": None,
         "food_count": 0,
         "speed_count": 0,
         "step_ms": START_STEP_MS,
@@ -108,8 +160,11 @@ def new_run():
         "milestone_until": None,
         "inverted": False,
         "lives": LIVES_START,
+        "workflow_id": gen_workflow_id(),
         "reason": "Quit",
     }
+    spawn_food(game, snake_set, game["last_step"])
+    return game
 
 
 def restart_after_continue(game):
@@ -118,7 +173,6 @@ def restart_after_continue(game):
     game["snake_set"] = snake_set
     game["dir"] = (1, 0)
     game["next_dir"] = (1, 0)
-    game["food"] = random_free_cell(snake_set)
     game["speed_count"] = 0
     game["step_ms"] = START_STEP_MS
     game["last_step"] = time.ticks_ms()
@@ -126,7 +180,10 @@ def restart_after_continue(game):
     game["burst"] = None
     game["milestone_until"] = None
     game["inverted"] = False
+    game["food_is_bonus"] = False
+    game["food_expires_at"] = None
     game["reason"] = "Quit"
+    spawn_food(game, snake_set, game["last_step"])
 
 
 def turn(game, x_dir, y_dir):
@@ -143,6 +200,12 @@ def turn(game, x_dir, y_dir):
 
 
 def step(game, now):
+    if game["food_is_bonus"] and game["food_expires_at"] is not None:
+        if time.ticks_diff(game["food_expires_at"], now) <= 0:
+            game["food_is_bonus"] = False
+            game["food_expires_at"] = None
+            game["food"] = random_free_cell(game["snake_set"])
+
     if time.ticks_diff(now, game["last_step"]) < game["step_ms"]:
         return True
     game["last_step"] = now
@@ -178,17 +241,35 @@ def step(game, now):
 
     if eating:
         old_food = game["food"]
-        game["food_count"] += 1
-        game["speed_count"] += 1
-        game["step_ms"] = compute_interval(game["speed_count"])
+        was_bonus = game["food_is_bonus"]
         game["burst"] = (old_food[0], old_food[1], EAT_BURST_FRAMES)
-        if game["food_count"] % MILESTONE_INTERVAL == 0:
-            game["milestone_until"] = ticks_add(now, MILESTONE_MS)
-        game["food"] = random_free_cell(snake_set)
-        try:
-            tone(880, 40)
-        except Exception:
-            pass
+        if was_bonus:
+            if game["lives"] < LIVES_START:
+                game["lives"] += 1
+            game["milestone_until"] = ticks_add(now, 600)
+            try:
+                tone(1320, 80)
+            except Exception:
+                pass
+            try:
+                haptic_pulse(220, 90, 2)
+            except Exception:
+                pass
+        else:
+            game["food_count"] += 1
+            game["speed_count"] += 1
+            game["step_ms"] = compute_interval(game["speed_count"])
+            if game["food_count"] % MILESTONE_INTERVAL == 0:
+                game["milestone_until"] = ticks_add(now, MILESTONE_MS)
+            try:
+                tone(880, 40)
+            except Exception:
+                pass
+            try:
+                haptic_pulse(80, 25, 1)
+            except Exception:
+                pass
+        spawn_food(game, snake_set, now)
 
     return True
 
@@ -274,6 +355,26 @@ def header_label(game):
     return "L" + str(game["lives"]) + " S" + str(game["food_count"])
 
 
+def draw_bonus_food(fx, fy, now):
+    on = (now // BONUS_FLASH_MS) & 1
+    if on:
+        cell_box(fx, fy)
+    else:
+        px = PLAY_LEFT + fx * CELL + 1
+        py = PLAY_TOP + fy * CELL + 1
+        oled_draw_box(px, py, 2, 2)
+    halo_x = PLAY_LEFT + fx * CELL - 1
+    halo_y = PLAY_TOP + fy * CELL - 1
+    if halo_x >= BORDER_LEFT + 1 and halo_y >= BORDER_TOP + 1:
+        if halo_x + CELL + 2 <= BORDER_RIGHT and halo_y + CELL + 2 <= BORDER_BOTTOM:
+            oled_set_draw_color(2)
+            oled_draw_box(halo_x, halo_y, CELL + 2, 1)
+            oled_draw_box(halo_x, halo_y + CELL + 1, CELL + 2, 1)
+            oled_draw_box(halo_x, halo_y, 1, CELL + 2)
+            oled_draw_box(halo_x + CELL + 1, halo_y, 1, CELL + 2)
+            oled_set_draw_color(1)
+
+
 def draw_play(game, now=None):
     if now is None:
         now = time.ticks_ms()
@@ -284,7 +385,9 @@ def draw_play(game, now=None):
     for cx, cy in game["snake"][1:]:
         cell_inner(cx, cy)
     fx, fy = game["food"]
-    if (now // 200) & 1:
+    if game["food_is_bonus"]:
+        draw_bonus_food(fx, fy, now)
+    elif (now // 200) & 1:
         cell_box(fx, fy)
     else:
         cell_inner(fx, fy)
@@ -419,11 +522,10 @@ def life_run(game):
     with_led_override(play_loop, game, session)
 
 
-def continue_pulse_frame(remaining_lives, phase):
-    rows = [0] * 8
-    rows[3] = lives_row_mask(remaining_lives)
-    rows[4] = rows[3]
-    return rows, 60 + phase * 90
+def tardigrade_frame(phase):
+    if phase == 0:
+        return TARDIGRADE_FRAME_A, 110
+    return TARDIGRADE_FRAME_B, 60
 
 
 def continue_screen(game):
@@ -441,7 +543,7 @@ def continue_screen(game):
 
     last_tick = time.ticks_ms()
     phase = 0
-    rows, bright = continue_pulse_frame(remaining, phase)
+    rows, bright = tardigrade_frame(phase)
     led_set_frame(rows, bright)
     while True:
         if button_pressed(BTN_CONFIRM):
@@ -454,7 +556,7 @@ def continue_screen(game):
         if time.ticks_diff(now, last_tick) >= CONTINUE_TICK_MS:
             last_tick = now
             phase = 1 - phase
-            rows, bright = continue_pulse_frame(remaining, phase)
+            rows, bright = tardigrade_frame(phase)
             led_set_frame(rows, bright)
         time.sleep_ms(20)
 
@@ -474,6 +576,9 @@ def title_screen(best):
 
     pos = 0
     last_tick = time.ticks_ms()
+    # idle_phase: "snake" runs the rotating snake; "tardigrade" briefly shows the mascot.
+    idle_phase = "snake"
+    phase_started = last_tick
     led_clear()
     while True:
         if button_pressed(BTN_CONFIRM):
@@ -483,18 +588,29 @@ def title_screen(best):
             led_clear()
             return False
         now = time.ticks_ms()
-        if time.ticks_diff(now, last_tick) >= TITLE_TICK_MS:
-            last_tick = now
-            pos = (pos + 1) % 64
-            led_clear()
-            for i in range(TITLE_SNAKE_LEN):
-                idx = (pos - i) % 64
-                r = idx // 8
-                c = idx % 8
-                level = 90 - i * 18
-                if level < 10:
-                    level = 10
-                led_set_pixel(c, r, level)
+        if idle_phase == "snake":
+            if time.ticks_diff(now, phase_started) >= 3000:
+                idle_phase = "tardigrade"
+                phase_started = now
+                led_set_frame(TARDIGRADE_FRAME_A, 110)
+            elif time.ticks_diff(now, last_tick) >= TITLE_TICK_MS:
+                last_tick = now
+                pos = (pos + 1) % 64
+                led_clear()
+                for i in range(TITLE_SNAKE_LEN):
+                    idx = (pos - i) % 64
+                    r = idx // 8
+                    c = idx % 8
+                    level = 90 - i * 18
+                    if level < 10:
+                        level = 10
+                    led_set_pixel(c, r, level)
+        else:
+            if time.ticks_diff(now, phase_started) >= 1000:
+                idle_phase = "snake"
+                phase_started = now
+                last_tick = now
+                led_clear()
         time.sleep_ms(15)
 
 
@@ -518,7 +634,7 @@ GAME_OVER_X = (
 )
 
 
-def game_over_screen(score, best, new_best, reason):
+def game_over_screen(score, best, new_best, reason, workflow_id):
     ui.chrome(
         "Game Over",
         "New Best!" if new_best else "Best " + str(best["total"]),
@@ -526,8 +642,9 @@ def game_over_screen(score, best, new_best, reason):
         "BACK", "quit",
     )
     ui.center(15, end_label(reason))
-    ui.center(28, "Score " + str(score["total"]))
-    ui.center(40, "Length " + str(score["length"]))
+    ui.center(26, "Activities " + str(score["total"]))
+    ui.center(36, "Length " + str(score["length"]))
+    ui.center(46, "WF " + workflow_id)
     oled_show()
 
     last_tick = time.ticks_ms()
@@ -600,7 +717,9 @@ def main():
         if new_best:
             best = score
             save_score(SCORE_PATH, best)
-        again = with_led_override(game_over_screen, score, best, new_best, game["reason"])
+        again = with_led_override(
+            game_over_screen, score, best, new_best, game["reason"], game["workflow_id"]
+        )
         if not again:
             oled_clear(True)
             cleanup()
