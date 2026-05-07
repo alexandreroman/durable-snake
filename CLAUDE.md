@@ -18,15 +18,17 @@ See [README.md](README.md) for full documentation.
 ## Build & run
 
 There is no build step — MicroPython is copied
-verbatim to the badge. Deploy and launch:
+verbatim to the badge. Host source lives in `app/`,
+on-badge target is `:apps/durable_snake/`. Deploy
+and launch:
 
 ```bash
 PORT=/dev/cu.usbmodem2101  # or whatever mpremote devs reports
 mpremote connect "$PORT" resume cp \
-    app/engine.py :app/engine.py
+    app/engine.py :apps/durable_snake/engine.py
 mpremote connect "$PORT" resume cp \
-    app/main.py :app/main.py
-# Launch from the badge's Apps menu → app
+    app/main.py :apps/durable_snake/main.py
+# Launch from the badge's Apps menu → durable_snake
 ```
 
 ## Modules

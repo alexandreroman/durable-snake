@@ -56,11 +56,11 @@ mpremote devs
 
 # Create the app folder and copy the source
 PORT=/dev/cu.usbmodem2101
-mpremote connect "$PORT" resume mkdir :app
+mpremote connect "$PORT" resume mkdir :apps/durable_snake
 mpremote connect "$PORT" resume cp \
-    app/engine.py :app/engine.py
+    app/engine.py :apps/durable_snake/engine.py
 mpremote connect "$PORT" resume cp \
-    app/main.py :app/main.py
+    app/main.py :apps/durable_snake/main.py
 ```
 
 > **Note** — always use `resume` with this badge.
@@ -69,7 +69,7 @@ mpremote connect "$PORT" resume cp \
 > fails to enter raw REPL.
 
 Once deployed, launch the app from the badge's
-**Apps** menu and pick **app**.
+**Apps** menu and pick **durable_snake**.
 
 ## Usage
 
