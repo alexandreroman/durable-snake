@@ -410,7 +410,7 @@ def continue_screen(game):
     )
     ui.center(15, "Durable execution")
     ui.center(28, "Score " + str(game["food_count"]))
-    ui.center(40, "Continue with " + str(remaining) + " " + ("life" if remaining == 1 else "lives"))
+    ui.center(40, "continue_as_new()")
     oled_show()
 
     last_tick = time.ticks_ms()
