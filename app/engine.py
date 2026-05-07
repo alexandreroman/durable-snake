@@ -20,10 +20,17 @@ import badge_ui as ui
 
 
 CELL = 4
-COLS = 32
-PLAY_TOP = 10
-PLAY_LEFT = 0
-ROWS = (64 - PLAY_TOP) // CELL  # 13
+COLS = 31
+PLAY_TOP = 11
+PLAY_LEFT = 2
+ROWS = 13
+
+# Border sits in the row just below the header and along the OLED edges;
+# the playfield is inset by 1px on every side so the snake never overdraws it.
+BORDER_TOP = 10
+BORDER_BOTTOM = 63
+BORDER_LEFT = 0
+BORDER_RIGHT = 127
 
 FRAME_MS = 30
 START_STEP_MS = 170
@@ -143,7 +150,12 @@ def step(game, now):
 
     dx, dy = game["dir"]
     head = game["snake"][0]
-    new_head = ((head[0] + dx) % COLS, (head[1] + dy) % ROWS)
+    nx = head[0] + dx
+    ny = head[1] + dy
+    if nx < 0 or nx >= COLS or ny < 0 or ny >= ROWS:
+        game["reason"] = "Wall hit"
+        return False
+    new_head = (nx, ny)
 
     eating = new_head == game["food"]
     snake = game["snake"]
@@ -223,6 +235,15 @@ def draw_burst(game):
     game["burst"] = (cx, cy, frames_left - 1)
 
 
+def draw_border():
+    width = BORDER_RIGHT - BORDER_LEFT + 1
+    height = BORDER_BOTTOM - BORDER_TOP + 1
+    oled_draw_box(BORDER_LEFT, BORDER_TOP, width, 1)
+    oled_draw_box(BORDER_LEFT, BORDER_BOTTOM, width, 1)
+    oled_draw_box(BORDER_LEFT, BORDER_TOP, 1, height)
+    oled_draw_box(BORDER_RIGHT, BORDER_TOP, 1, height)
+
+
 def is_milestone(game, now):
     until = game["milestone_until"]
     if until is None:
@@ -268,6 +289,7 @@ def draw_play(game, now=None):
     else:
         cell_inner(fx, fy)
     draw_burst(game)
+    draw_border()
     oled_show()
 
 
@@ -446,7 +468,7 @@ def title_screen(best):
     )
     ui.text(4, 14, "Joystick: turn", 120)
     ui.text(4, 24, "3 lives per run", 120)
-    ui.text(4, 34, "Edges wrap, fast pace", 120)
+    ui.text(4, 34, "Walls hurt - turn fast", 120)
     ui.text(4, 44, "(c) Alexandre Roman", 120)
     oled_show()
 
@@ -479,6 +501,7 @@ def title_screen(best):
 def end_label(reason):
     return {
         "Snake bite": "Out of lives",
+        "Wall hit": "Out of bounds",
         "Quit": "Run quit",
     }.get(reason, reason)
 
