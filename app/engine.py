@@ -86,7 +86,10 @@ TARDIGRADE_FRAME_B = (
     0b01000010,
 )
 
-# 3x5 pixel font for digits 0-9. Each glyph row uses bit 2 = leftmost pixel, bit 0 = rightmost.
+# 3x5 pixel font for digits 0-9. Authored upright with bit 2 leftmost so the
+# glyph shape is readable in source; render_score_frame flips both axes at the
+# end because the score is read with the badge held inverted (unlike the
+# tardigrade and game-over bitmaps, which are passed through unchanged).
 DIGITS_3X5 = (
     (0b111, 0b101, 0b101, 0b101, 0b111),
     (0b010, 0b010, 0b010, 0b010, 0b111),
