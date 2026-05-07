@@ -1,0 +1,15 @@
+# Python / MicroPython
+__pycache__/
+*.py[cod]
+*.mpy
+
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Local artifacts
+last_mpy_error.txt
