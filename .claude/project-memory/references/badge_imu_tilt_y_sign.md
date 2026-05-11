@@ -1,6 +1,6 @@
 ---
 name: "Badge IMU tilt_y sign disagrees with dev guide"
-description: "On this Replay Badge, imu_tilt_y() is positive when the OLED-end points down (lanyard); the dev guide's sign convention is reversed."
+description: "On this Replay Badge, imu_tilt_y() is positive when the OLED-end points down (lanyard); sign is reversed vs the dev guide, and imu_face_down() does NOT fire in lanyard mode despite the guide's example."
 type: project
 ---
 
@@ -37,3 +37,45 @@ hysteresis). Do not copy sign conventions from
 re-measuring. If `imu_tilt_x()` or `imu_tilt_z()`
 matters for a feature, measure those independently
 too — the guide may be wrong about them as well.
+
+## Don't use `imu_face_down()` for lanyard detection
+
+The on-device
+`/docs/MicroPythonDeveloperGuide.md` example wires
+nametag/lanyard detection to `imu_face_down()`:
+
+```python
+if imu_face_down():
+    oled_println("Walking mode!")
+```
+
+This is misleading. `imu_face_down()` thresholds
+on the **Z-axis** — it only returns `True` when
+the screen is physically pointing toward the
+floor (e.g. badge laid screen-down on a table).
+It does **not** fire when the badge hangs
+vertically on a lanyard, because in that posture
+the OLED faces roughly horizontally and Z is near
+zero.
+
+Measured during the same 2026-05-11 session,
+`imu_face_down()` stayed `False` in every
+real-use orientation the user tested:
+
+- Held in hand, OLED visible: `False`
+- Hanging on a lanyard around the neck: `False`
+- Flat on the desk, OLED up: `False`
+- Tilted, swung, in motion: `False`
+
+It only goes `True` if you deliberately flip the
+badge so the OLED points at the floor — which is
+not a normal wearing or holding posture.
+
+**How to apply:** Use `imu_tilt_y()` for
+lanyard/nametag detection (see thresholds above).
+Reserve `imu_face_down()` for the literal
+"screen-on-table" case, e.g. a privacy or
+sleep-while-face-down feature. If you read the
+dev guide example and assume it works, the app
+will silently never trigger — that exact bug
+ate hours during the starfield_nametag IMU work.
