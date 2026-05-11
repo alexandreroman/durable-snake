@@ -8,6 +8,8 @@ matrix. A small piece of ambient sci-fi for the
 badge, ideal for a conference nametag or event
 tagline display.
 
+https://github.com/user-attachments/assets/d5d163ab-2b34-4b27-9f75-5b28b1f62bcd
+
 ## Features
 
 - **Perspective starfield** — stars accelerate
