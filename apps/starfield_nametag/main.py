@@ -28,16 +28,27 @@ from sn_engine import main, cleanup
 
 TEXT = "Hello, World!"
 CONFIG_PATH = "/starfield_nametag_config.json"
+BADGE_INFO_PATH = "/badgeInfo.json"
 
 
 def _load_text():
+    import json
     try:
-        import json
         with open(CONFIG_PATH, "r") as f:
             data = json.load(f)
         candidate = data.get("text")
         if isinstance(candidate, str) and candidate:
             return candidate
+    except Exception:
+        pass
+    try:
+        with open(BADGE_INFO_PATH, "r") as f:
+            info = json.load(f)
+        name = info.get("name")
+        if isinstance(name, str):
+            first = name.strip().split()
+            if first:
+                return "Hi, I'm " + first[0] + "!"
     except Exception:
         pass
     return TEXT

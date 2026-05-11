@@ -18,9 +18,21 @@ tagline display.
   they leave the screen.
 - **Configurable centered text** — a fixed message
   sits in a punched halo at the middle of the OLED
-  so it stays readable over the moving field. Set
-  the default in `main.py`, or override at runtime
-  with a JSON file on the badge filesystem.
+  so it stays readable over the moving field. The
+  text is resolved at launch from, in priority
+  order: an explicit
+  `/starfield_nametag_config.json`, the badge's
+  `/badgeInfo.json` profile (rendered as
+  `Hi, I'm <firstname>!`), and finally a hard-coded
+  fallback in `main.py`.
+- **Auto text size** — the message is auto-fitted
+  to the OLED width at launch by probing the
+  firmware's `oled_text_width()` from text size 4
+  down to 1, picking the largest size that fits in
+  120 px (128 px display minus an 8 px margin).
+  Short names like *Hi, I'm Ada!* stay large; long
+  full-sentence messages step down to size 1 so
+  they remain visible.
 - **LED matrix mirror** — eight independent stars
   drift outward across the 8×8 RGB matrix, fading
   in with distance, reinforcing the space motif
@@ -46,21 +58,41 @@ Hard-reset the badge after deploying, then launch
 
 ## Configuring the nametag text
 
-The default text is set in `main.py` via the `TEXT`
-constant. To override at runtime without
-re-deploying source, drop a JSON file at
-`/starfield_nametag_config.json` on the badge
-filesystem:
+The displayed text is resolved at launch in this
+order:
 
-```json
-{ "text": "Replay 2026" }
-```
+1. **`/starfield_nametag_config.json`** — if the
+   file exists and contains a non-empty `text`
+   field, that string is used as-is. Use this when
+   you want a custom slogan or event tagline:
 
-If the file is missing or malformed, the constant is
-used as a fallback. Keep the message short —
-roughly 18 characters fit horizontally at the
-OLED's pixel font (6 px per glyph over a 128 px
-display).
+   ```json
+   { "text": "Replay 2026" }
+   ```
+
+2. **`/badgeInfo.json`** — the badge's profile
+   file shipped on Temporal-issued badges
+   (described at
+   [badge.temporal.io](https://badge.temporal.io)).
+   If the config file is absent, the first
+   whitespace-separated token of the `name` field
+   becomes the nametag, rendered as
+   `Hi, I'm <firstname>!`. So a badge with
+   `"name": "Alexandre Roman"` shows
+   `Hi, I'm Alexandre!`.
+
+3. **Hard-coded fallback** — the `TEXT` constant
+   in `main.py` (currently `"Hello, World!"`) is
+   used when neither file is available.
+
+The text size is auto-fitted to the OLED so any
+length stays on screen: the engine probes
+firmware text sizes 4 → 1 and picks the largest
+that fits within 120 px of the 128 px display.
+Short names get bold size-4 glyphs; long
+sentences fall back to size 1. There is no fixed
+character limit — but messages shorter than
+~10–12 characters look the most striking.
 
 ## Controls
 
@@ -82,6 +114,7 @@ graph TD
     badge_hw --> oled[OLED 128x64<br/>starfield + centered text]
     badge_hw --> leds[LED matrix 8x8<br/>star mirror]
     main --> config[(starfield_nametag_config.json)]
+    main --> info[(badgeInfo.json)]
 ```
 
 The OLED renders 36 stars on a polar coordinate

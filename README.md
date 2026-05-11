@@ -13,7 +13,7 @@ LED matrix, and joystick.
 | App                                          | What it is                                                                        |
 | -------------------------------------------- | --------------------------------------------------------------------------------- |
 | [durable_snake](apps/durable_snake/)         | Snake game with three retries — a play on Temporal's *durable execution* product. |
-| [starfield_nametag](apps/starfield_nametag/) | Animated perspective starfield with a configurable centered nametag text overlay. |
+| [starfield_nametag](apps/starfield_nametag/) | Animated starfield with a centered nametag — personalized from `/badgeInfo.json`. |
 
 Each app lives in its own folder under `apps/`, with
 its source under `apps/<name>/` and a per-app README

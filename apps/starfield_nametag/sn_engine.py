@@ -52,6 +52,7 @@ _LED_HI = (
 )
 
 _text = "Hello, World!"
+_text_size = 4
 
 # tilt_y in milli-g. Measured on this badge: held in hand ≈ -75, hanging on a
 # lanyard ≈ +950 (sign opposite to what the badge dev guide claims). Cross
@@ -76,8 +77,20 @@ def _update_flip():
 
 
 def set_text(value):
-    global _text
+    global _text, _text_size
     _text = value if isinstance(value, str) and value else "Hello, World!"
+    max_w = OLED_W - 8
+    chosen = 1
+    # WHY: firmware oled_text_width() reports the actual on-screen render width for the active
+    # font (default Spleen 9px). The width does not follow the standard 6*size Adafruit GFX
+    # formula, so we probe sizes via the firmware rather than computing arithmetically.
+    for size in (4, 3, 2, 1):
+        oled_set_text_size(size)
+        if oled_text_width(_text) <= max_w:
+            chosen = size
+            break
+    oled_set_text_size(1)
+    _text_size = chosen
 
 
 def _pick_xy():
@@ -137,7 +150,7 @@ def _draw_stars(game):
 
 
 def _draw_text(text):
-    oled_set_text_size(4)
+    oled_set_text_size(_text_size)
     w = oled_text_width(text)
     h = oled_text_height()
     x = (OLED_W - w) // 2

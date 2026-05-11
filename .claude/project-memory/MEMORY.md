@@ -22,3 +22,4 @@
 - [MicroPython negative-step slicing unsupported](references/micropython_negative_step_slicing.md) — `s[::-1]` and any `step != 1` slice raise `NotImplementedError` at runtime on the badge; reverse via loop/`reversed()`/arithmetic
 - [Badge IMU tilt_y sign + imu_face_down caveat](references/badge_imu_tilt_y_sign.md) — measured: held ≈ -75, lanyard ≈ +950 mG (positive = upside-down, opposite of dev guide); `imu_face_down()` is Z-only and never fires on a lanyard
 - [Badge oled_set_framebuffer applies a hidden 180° rotation](references/badge_oled_set_framebuffer_rotates.md) — firmware stores `internal[1023-i] = bit_reverse(input[i])`; `set_fb(get_fb())` flips display 180° in one call
+- [Badge oled_text_width does not scale linearly with text size](references/badge_oled_text_width_no_size_scaling.md) — default font is Spleen 9px; trust the firmware `oled_text_width()` for auto-fit, never compute `chars*6*size`
