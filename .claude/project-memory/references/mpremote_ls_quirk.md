@@ -12,11 +12,11 @@ with a trailing slash.
 
 ```bash
 # Fails:
-mpremote connect <port> resume ls :apps/durable_snake/
-# -> mpremote: ls: apps/durable_snake/: Invalid argument.
+mpremote connect <port> resume ls :apps/<app>/
+# -> mpremote: ls: apps/<app>/: Invalid argument.
 
 # Works:
-mpremote connect <port> resume ls :apps/durable_snake
+mpremote connect <port> resume ls :apps/<app>
 ```
 
 **Why:** Reproduced live on mpremote 1.27.0 against

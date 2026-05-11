@@ -7,8 +7,8 @@ type: feedback
 # Hard reset required after each app deployment
 
 After deploying updated app files to the badge
-(e.g. `mpremote ... cp app/engine.py
-:apps/durable_snake/engine.py`), the badge must be
+(e.g. `mpremote ... cp apps/<app>/<prefix>_engine.py
+:apps/<app>/<prefix>_engine.py`), the badge must be
 hard-reset before the changes are visible when
 launching the app.
 

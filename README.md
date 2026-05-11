@@ -1,45 +1,23 @@
-# Durable Snake
+# Temporal Replay 2026 Badge Apps
 
-A snake game for the Temporal Replay Badge — a custom
-MicroPython app that lets you grow long, die fast,
-and continue from where you fell thanks to three
-built-in retries. Inspired by Temporal's durable
-execution mantra.
+A collection of MicroPython apps for the **Temporal
+Replay Badge** (ESP32-S3) handed out at Temporal
+Replay 2026 — ambient displays, games, and other
+small experiences that run on the badge's OLED, 8×8
+LED matrix, and joystick.
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-https://github.com/user-attachments/assets/f2cd3311-fb24-43c2-9589-72fddf574083
+## Apps
 
-## Features
+| App                                          | What it is                                                                        |
+| -------------------------------------------- | --------------------------------------------------------------------------------- |
+| [durable_snake](apps/durable_snake/)         | Snake game with three retries — a play on Temporal's *durable execution* product. |
+| [starfield_nametag](apps/starfield_nametag/) | Animated perspective starfield with a configurable centered nametag text overlay. |
 
-- **Three lives per run** — a snake bite is not the
-  end. Two retries restart the snake fresh while
-  keeping your score intact.
-- **Geometric speedup** — the play interval shrinks
-  by ~7.7% per apple eaten, from 170 ms down to a
-  38 ms floor. Reaching score 20 already feels
-  brutal.
-- **Dual-screen output** — the OLED runs the game
-  grid; the 8×8 LED matrix renders the live score as
-  decimal digits in a 3×5 pixel font, with a
-  hundreds bar across the top row.
-- **Tardigrade bonus** — after losing a life, a rare
-  tardigrade-shaped bonus food may appear. Eat it
-  within 6 seconds to win an extra life back.
-- **Temporal flair** — each run is tagged with a
-  workflow ID shown on the game-over screen, and the
-  retry prompt nods to `continue_as_new()`.
-- **Visual effects** — eat-burst rings, milestone
-  flashes every 10 apples (hardware OLED invert plus
-  LED strobe), animated death sequence, animated
-  title and game-over screens.
-- **Audio and haptics** — coil-tone beep plus a
-  heartbeat haptic pulse on every apple, brighter
-  chime on a tardigrade catch, descending tones on
-  death, vibration burst on game over.
-- **Persistent best score** — saved to flash on the
-  badge, survives reboots and reflashes that keep
-  the filesystem.
+Each app lives in its own folder under `apps/`, with
+its source under `apps/<name>/` and a per-app README
+covering controls, configuration, and architecture.
 
 ## Prerequisites
 
@@ -52,25 +30,30 @@ https://github.com/user-attachments/assets/f2cd3311-fb24-43c2-9589-72fddf574083
   `badge_app`, `badge_ui`) — pre-installed on
   Temporal-issued badges.
 
-## Getting Started
+## Deploying an app
 
-Clone the repo and deploy the two app files to the
-badge:
+There is no build step — MicroPython is copied
+verbatim to the badge. Each app's host-side folder
+under `apps/` is named identically to its on-badge
+target (e.g. `apps/durable_snake/` →
+`/apps/durable_snake/`), so the same path string
+works on both sides. Folder names use underscores
+because Python modules cannot contain hyphens.
 
 ```bash
-git clone https://github.com/<owner>/durable-snake.git
-cd durable-snake
-
 # Find the badge's serial port
 mpremote devs
 
-# Create the app folder and copy the source
+# Pick the app you want to deploy
 PORT=/dev/cu.usbmodem2101
-mpremote connect "$PORT" resume mkdir :apps/durable_snake
-mpremote connect "$PORT" resume cp \
-    app/engine.py :apps/durable_snake/engine.py
-mpremote connect "$PORT" resume cp \
-    app/main.py :apps/durable_snake/main.py
+APP=durable_snake          # or starfield_nametag
+
+mpremote connect "$PORT" resume mkdir ":apps/$APP"
+# Each app's engine is named with an app-specific prefix
+# (ds_engine.py / sn_engine.py) — see the per-app README.
+for f in apps/$APP/*.py; do
+    mpremote connect "$PORT" resume cp "$f" ":apps/$APP/$(basename "$f")"
+done
 ```
 
 > **Note** — always use `resume` with this badge.
@@ -78,57 +61,38 @@ mpremote connect "$PORT" resume cp \
 > Ctrl-D, so the default `mpremote connect ...` mode
 > fails to enter raw REPL.
 
-Once deployed, launch the app from the badge's
-**Apps** menu and pick **durable_snake**.
+After deploying, **hard-reset the badge** before
+launching the app, otherwise the cached module
+from the previous run will execute. Launch the app
+from the badge's **Apps** menu.
 
-## Usage
+## Repository layout
 
-Controls during play:
-
-| Input                      | Action                    |
-| -------------------------- | ------------------------- |
-| Joystick (4 ways)          | Steer the snake           |
-| `BTN_BACK`                 | Quit the current run      |
-| `BTN_CONFIRM` / `BTN_BACK` | Confirm / cancel on menus |
-
-A 1-pixel border surrounds the play field — touching
-it ends the life. When you bite yourself or hit the
-wall with lives remaining, a **Bitten!** screen
-offers a retry; otherwise the run ends and your
-score is recorded.
-
-The best score is saved at
-`/durable_snake_score.json` on the badge filesystem.
-
-## Architecture
-
-```mermaid
-graph TD
-    main[main.py<br/>entry point] --> engine[engine.py<br/>game state + rendering]
-    engine --> badge_app[badge_app<br/>DualScreenSession, helpers]
-    engine --> badge_ui[badge_ui<br/>chrome + text]
-    engine --> badge_hw[badge<br/>native APIs]
-    badge_hw --> oled[OLED 128x64<br/>play grid + chrome]
-    badge_hw --> leds[LED matrix 8x8<br/>lives + score]
-    badge_hw --> input[Joystick + buttons]
-    engine --> save[(durable_snake_score.json)]
+```
+.
+├── apps/
+│   ├── durable_snake/         # snake game
+│   │   ├── ds_engine.py
+│   │   └── main.py
+│   └── starfield_nametag/     # ambient starfield + nametag
+│       ├── sn_engine.py
+│       └── main.py
+├── CLAUDE.md                  # Claude Code project rules
+├── LICENSE
+└── README.md
 ```
 
-The play grid is 31 columns × 13 rows of 4×4-pixel
-cells, framed by a 1-pixel border just below the
-chrome header. The LED matrix's top row holds a
-hundreds bar (filled rightmost-first); rows 3–7
-render the score as one or two decimal digits using
-a 3×5 pixel font. The current life count is shown
-as `Lx` in the OLED chrome header instead.
+## Firmware and badge info
+
+The official site for badge firmware updates and
+hardware info is [badge.temporal.io](https://badge.temporal.io).
 
 ## Contributing
 
-This is a personal project, but bug reports and
-small patches are welcome through GitHub issues
-and pull requests. Please match the existing code
-style (no decorative comments, short docstrings,
-descriptive identifiers over prose).
+Bug reports and small patches are welcome through
+GitHub issues and pull requests. Match the existing
+code style (no decorative comments, short
+docstrings, descriptive identifiers over prose).
 
 ## License
 

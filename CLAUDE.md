@@ -1,7 +1,8 @@
-# Durable Snake
+# Temporal Replay 2026 Badge Apps
 
-A MicroPython snake game with three retries for the
-Temporal Replay Badge (ESP32-S3).
+A collection of MicroPython apps for the Temporal
+Replay Badge (ESP32-S3). Each app lives in its own
+folder under `apps/`.
 
 See [README.md](README.md) for full documentation.
 
@@ -15,31 +16,54 @@ See [README.md](README.md) for full documentation.
   `badge_app`, `badge_ui` (auto-importable from
   `/lib/`)
 
+## Repository layout
+
+```
+apps/
+├── durable_snake/             # snake game with three retries
+│   ├── ds_engine.py
+│   └── main.py
+└── starfield_nametag/         # animated starfield + nametag text
+    ├── sn_engine.py
+    └── main.py
+```
+
+Each app's host-side folder under `apps/` is named
+identically to its on-badge target so the same path
+string works on both sides
+(`apps/durable_snake/` → `/apps/durable_snake/`).
+Folder names use underscores because Python modules
+cannot contain hyphens. Each `main.py` must set
+`APP_DIR` to the full on-badge path
+(`/apps/<folder>`) — never `/app` or any
+abbreviated form.
+
 ## Build & run
 
 There is no build step — MicroPython is copied
-verbatim to the badge. Host source lives in `app/`,
-on-badge target is `:apps/durable_snake/`. Deploy
-and launch:
+verbatim to the badge. Deploy and launch:
 
 ```bash
-PORT=/dev/cu.usbmodem2101  # or whatever mpremote devs reports
-mpremote connect "$PORT" resume cp \
-    app/engine.py :apps/durable_snake/engine.py
-mpremote connect "$PORT" resume cp \
-    app/main.py :apps/durable_snake/main.py
-# Launch from the badge's Apps menu → durable_snake
+PORT=/dev/cu.usbmodem2101  # whatever mpremote devs reports
+APP=durable_snake          # or starfield_nametag
+
+for f in apps/$APP/*.py; do
+    mpremote connect "$PORT" resume cp "$f" ":apps/$APP/$(basename "$f")"
+done
+# Hard-reset the badge, then launch from the Apps menu.
 ```
 
-## Modules
+## Apps
 
-- `app/main.py` — entry point that
-  registers the app with `run_app(...)` and wires
-  the cleanup callback.
-- `app/engine.py` — game state,
-  rules, OLED rendering, LED matrix rendering,
-  visual effects, and screens (title, play,
-  continue, game over).
+- **`apps/durable_snake/`** — snake game with three
+  retries, a deliberate pun on Temporal's
+  durable-execution product. Per-app docs live in
+  the folder.
+- **`apps/starfield_nametag/`** — animated
+  perspective starfield with a configurable
+  centered text overlay (nametag / event tagline).
+  Optional JSON config on the badge at
+  `/starfield_nametag_config.json`.
 
 ## Agents
 
