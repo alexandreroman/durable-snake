@@ -19,3 +19,6 @@
 - [Badge serial port enumeration](references/badge_serial_port.md) — Replay Badge shows up as `/dev/cu.usbmodem2101` (VID:PID `303a:1001`); always re-check via `mpremote devs`
 - [MicroPython math.hypot missing on badge](references/micropython_math_hypot_missing.md) — badge's `math` lacks `hypot`; replace with `math.sqrt(a*a + b*b)`; probe `dir(math)` before using non-trivial helpers
 - [Per-app engine module must have a unique name](references/per_app_engine_module_name.md) — name each folder-app's engine `<prefix>_engine.py` (e.g. `ds_engine`, `sn_engine`) to avoid `sys.modules` collisions across apps
+- [MicroPython negative-step slicing unsupported](references/micropython_negative_step_slicing.md) — `s[::-1]` and any `step != 1` slice raise `NotImplementedError` at runtime on the badge; reverse via loop/`reversed()`/arithmetic
+- [Badge IMU tilt_y sign disagrees with dev guide](references/badge_imu_tilt_y_sign.md) — measured: held ≈ -75 mG, lanyard (OLED down) ≈ +950 mG; positive = upside-down, opposite of what `MicroPythonDeveloperGuide.md` claims
+- [Badge oled_set_framebuffer applies a hidden 180° rotation](references/badge_oled_set_framebuffer_rotates.md) — firmware stores `internal[1023-i] = bit_reverse(input[i])`; `set_fb(get_fb())` flips display 180° in one call

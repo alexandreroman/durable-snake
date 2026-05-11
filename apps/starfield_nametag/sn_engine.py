@@ -53,6 +53,27 @@ _LED_HI = (
 
 _text = "Hello, World!"
 
+# tilt_y in milli-g. Measured on this badge: held in hand ≈ -75, hanging on a
+# lanyard ≈ +950 (sign opposite to what the badge dev guide claims). Cross
+# +500 to enter nametag/lanyard mode; recover at +300. Hysteresis keeps the
+# flip from chattering as the badge swings on the cord.
+_FLIP_ENTER_MG = 500
+_FLIP_EXIT_MG = 300
+
+_flipped = False
+
+
+def _update_flip():
+    global _flipped
+    ty = imu_tilt_y()
+    if _flipped:
+        if ty < _FLIP_EXIT_MG:
+            _flipped = False
+    else:
+        if ty > _FLIP_ENTER_MG:
+            _flipped = True
+    return _flipped
+
 
 def set_text(value):
     global _text
@@ -115,26 +136,6 @@ def _draw_stars(game):
             oled_draw_box(sx, sy, 1, 1)
 
 
-# WHY: badge has no native display-rotation API; flip in software.
-def _rotate_180(x, y, w, h):
-    x0 = x if x > 0 else 0
-    y0 = y if y > 0 else 0
-    x1 = x + w
-    y1 = y + h
-    if x1 > OLED_W:
-        x1 = OLED_W
-    if y1 > OLED_H:
-        y1 = OLED_H
-    cw = x1 - x0
-    ch = y1 - y0
-    if cw <= 0 or ch <= 0:
-        return
-    buf = [[oled_get_pixel(x0 + i, y0 + j) for i in range(cw)] for j in range(ch)]
-    for j in range(ch):
-        for i in range(cw):
-            oled_set_pixel(x0 + i, y0 + j, buf[ch - 1 - j][cw - 1 - i])
-
-
 def _draw_text(text):
     oled_set_text_size(4)
     w = oled_text_width(text)
@@ -148,8 +149,16 @@ def _draw_text(text):
     oled_set_draw_color(1)
     oled_set_cursor(x, y)
     oled_print(text)
-    _rotate_180(x - 2, y - 2, w + 4, h + 4)
     oled_set_text_size(1)
+
+
+# WHY one-liner: the badge's oled_set_framebuffer() already applies a 180°
+# rotation internally (internal[1023-i] = bit_reverse(input[i])) before
+# storing — verified on hardware. So feeding the current framebuffer back
+# through set_framebuffer flips the display 180° in one call. Do NOT add
+# a manual rotation here: that would double-flip and become a no-op.
+def _rotate_fb_180():
+    oled_set_framebuffer(oled_get_framebuffer())
 
 
 def _draw_led():
@@ -164,7 +173,10 @@ def _render(game):
     oled_clear()
     _draw_stars(game)
     _draw_text(_text)
-    oled_show()
+    if _update_flip():
+        _rotate_fb_180()
+    else:
+        oled_show()
     _draw_led()
 
 
@@ -187,6 +199,8 @@ def main():
 
 
 def cleanup():
+    global _flipped
+    _flipped = False
     try:
         oled_invert(False)
     except Exception:
